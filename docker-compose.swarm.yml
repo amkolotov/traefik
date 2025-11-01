@@ -1,0 +1,61 @@
+services:
+  traefik:
+    image: traefik
+    command:
+      - "--entryPoints.http.address=:80"
+      - "--entryPoints.http.http.redirections.entryPoint.to=https"
+      - "--entryPoints.http.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.http.http.redirections.entryPoint.permanent=true"
+      - "--entryPoints.https.address=:443"
+      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
+      - "--providers.swarm.exposedByDefault=false"
+      - "--providers.swarm.defaultRule=Host(`{{ index .Labels \"traefik.subdomain\" }}.${SERVER_HOST}`)"
+      - "--certificatesResolvers.letsEncrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesResolvers.letsEncrypt.acme.storage=/certificates/acme.json"
+      - "--certificatesResolvers.letsEncrypt.acme.httpChallenge.entryPoint=http"
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: ingress
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: ingress
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certificates:/certificates
+    networks:
+      - traefik
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - "traefik.enable=true"
+    environment:
+      - SERVER_HOST=${SERVER_HOST}
+      - ACME_EMAIL=${ACME_EMAIL}
+
+networks:
+  traefik:
+    driver: overlay
+    attachable: true
+
+volumes:
+  traefik_certificates:
+    driver: local
