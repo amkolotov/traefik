@@ -46,7 +46,7 @@ services:
         max_attempts: 3
         window: 120s
       labels:
-        - "traefik.enable=true"
+        - "traefik.enable=false"
     environment:
       - SERVER_HOST=${SERVER_HOST}
       - ACME_EMAIL=${ACME_EMAIL}
