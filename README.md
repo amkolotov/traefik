@@ -101,3 +101,7 @@
 Для масштабирования сервиса (если нужно несколько реплик):
 
     docker service scale traefik_traefik=3
+
+export $(cat .env | xargs)
+docker stack deploy -c docker-compose.swarm.yml traefik
+docker service update --force traefik_traefik
